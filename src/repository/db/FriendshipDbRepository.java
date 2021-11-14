@@ -28,11 +28,12 @@ public class FriendshipDbRepository implements Repository<Tuple<Integer, Integer
 
     @Override
     public void save(Friendship entity) {
-        String sql = "INSERT INTO \"Friendships\" (\"FirstUserId\", \"SecondUserId\") VALUES (?, ?)";
+        String sql = "INSERT INTO \"Friendships\" (\"FirstUserId\", \"SecondUserId\", \"FriendshipDate\") VALUES (?, ?, ?)";
         try (Connection connection = DriverManager.getConnection(url, username, password);
              PreparedStatement ps = connection.prepareStatement(sql)) {
             ps.setInt(1, entity.getId().getFirst());
             ps.setInt(2, entity.getId().getSecond());
+            ps.setDate(3, Date.valueOf(entity.getDate()));
             ps.executeUpdate();
         } catch (SQLException e) {
             e.printStackTrace();
@@ -63,7 +64,8 @@ public class FriendshipDbRepository implements Repository<Tuple<Integer, Integer
             while (resultSet.next()) {
                 Integer id1 = resultSet.getInt("FirstUserId");
                 Integer id2 = resultSet.getInt("SecondUserId");
-                friendship = new Friendship(new Tuple<>(id1, id2));
+                LocalDate friendshipDate = resultSet.getDate("FriendshipDate").toLocalDate();
+                friendship = new Friendship(new Tuple<>(id1, id2), friendshipDate);
             }
         } catch (SQLException e) {
             e.printStackTrace();
@@ -80,7 +82,8 @@ public class FriendshipDbRepository implements Repository<Tuple<Integer, Integer
             while (resultSet.next()) {
                 Integer id1 = resultSet.getInt("FirstUserId");
                 Integer id2 = resultSet.getInt("SecondUserId");
-                Friendship friendship = new Friendship(new Tuple<>(id1, id2));
+                LocalDate friendshipDate = resultSet.getDate("FriendshipDate").toLocalDate();
+                Friendship friendship = new Friendship(new Tuple<>(id1, id2), friendshipDate);
                 friendships.add(friendship);
             }
         } catch (SQLException e) {
@@ -92,12 +95,10 @@ public class FriendshipDbRepository implements Repository<Tuple<Integer, Integer
     @Override
     public int size() {
         try (Connection connection = DriverManager.getConnection(url, username, password);
-             PreparedStatement ps = connection.prepareStatement("SELECT COUNT(*) AS Size FROM \"FriendShips\"");
+             PreparedStatement ps = connection.prepareStatement("SELECT COUNT(*) AS Size FROM \"Friendships\"");
              ResultSet resultSet = ps.executeQuery()) {
-            while (resultSet.next()) {
-                Integer s = resultSet.getInt("Size");
-                return s;
-            }
+            resultSet.next();
+            return resultSet.getInt("Size");
         } catch (SQLException e) {
             e.printStackTrace();
         }
