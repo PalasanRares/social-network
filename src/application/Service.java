@@ -10,7 +10,10 @@ import validator.exception.DuplicateFriendshipException;
 import validator.exception.UserNotFoundException;
 
 import java.time.LocalDate;
+import java.time.Month;
 import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 /**
  * Service which manages user and friendship repositories
@@ -140,4 +143,21 @@ public class Service {
         return userRepository.findAll();
     }
 
+
+//    public Iterable<UserFriendDTO> findRelationsByMonth(int user, String mon) {
+//     return StreamSupport.stream(findAllFriendships().spliterator(),false)
+//             .filter(friendship->friendship.getId().getFirst().equals(user)|| friendship.getId().getSecond().equals(user)&&friendship.getDate().getMonth().toString().equals(mon))
+//             //.filter(friendship->friendship.getDate().getMonth().toString().equals(mon))
+//             .map(friendship->{
+//                 User friend;
+//                 if(friendship.getId().getFirst().equals(user)){
+//                    friend = userRepository.findOne(friendship.getId().getSecond());
+//                 }
+//                 else{
+//                     friend = userRepository.findOne(friendship.getId().getFirst());
+//                 }
+//                 return new UserFriendDTO(friend.getFirstName(),friend.getLastName(),friendship.getDate());
+//             })
+//             .collect(Collectors.toList());
+//    }
 }

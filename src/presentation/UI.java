@@ -4,6 +4,7 @@ import application.Service;
 import domain.Friendship;
 import domain.User;
 
+import java.time.Month;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Scanner;
@@ -22,6 +23,9 @@ public class UI {
         this.service = service;
     }
 
+   // private void rel2UI(String[] args){
+      // service.findRelationsByMonth(Integer.parseInt(args[0]),args[1]);
+  //  }
     private void addUI(String[] args) {
         switch (args[0]) {
             case "user" -> service.addUser(Arrays.copyOfRange(args, 1, args.length));
@@ -84,6 +88,7 @@ public class UI {
                 case "ls" -> lsUI(Arrays.copyOfRange(args, 1, args.length));
                 case "connections" -> connectionsUI(Arrays.copyOfRange(args, 1, args.length));
                 case "largest" -> largestUI();
+                //case "relations2" -> rel2UI(Arrays.copyOfRange(args, 1, args.length));
             }
         }
     }
