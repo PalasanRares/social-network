@@ -54,7 +54,7 @@ public class User extends Entity<Integer> {
 
     @Override
     public String toString() {
-        return super.toString() + " " + firstName + " " + lastName + " " + birthday.format(DateFormatter.STANDARD_DATE_FORMAT).toString();
+        return super.toString() + " " + firstName + " " + lastName + " " + birthday.format(DateFormatter.STANDARD_DATE_FORMAT);
     }
 
     /**

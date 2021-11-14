@@ -14,8 +14,8 @@ public class Main {
      * @param args console line arguments
      */
     public static void main(String[] args) {
-        Repository<Integer, User> userRepository = new UserDbRepository("jdbc:postgresql://localhost:5432/SocialNetwork", "postgres", "Nope");
-        Repository<Tuple<Integer, Integer>, Friendship> friendshipRepository = new FriendshipDbRepository("jdbc:postgresql://localhost:5432/SocialNetwork", "postgres", "Salut");
+        Repository<Integer, User> userRepository = new UserDbRepository("jdbc:postgresql://localhost:5432/SocialNetwork", "postgres", "Indiferent1");
+        Repository<Tuple<Integer, Integer>, Friendship> friendshipRepository = new FriendshipDbRepository("jdbc:postgresql://localhost:5432/SocialNetwork", "postgres", "Indiferent1");
 
         Service service = new Service(friendshipRepository, userRepository);
 
