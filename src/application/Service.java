@@ -1,16 +1,16 @@
 package application;
 
 import constants.DateFormatter;
-import domain.Friendship;
-import domain.Network;
-import domain.Tuple;
-import domain.User;
+import domain.*;
 import repository.Repository;
 import validator.exception.DuplicateFriendshipException;
 import validator.exception.UserNotFoundException;
 
 import java.time.LocalDate;
-import java.time.Month;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
@@ -144,20 +144,21 @@ public class Service {
     }
 
 
-//    public Iterable<UserFriendDTO> findRelationsByMonth(int user, String mon) {
-//     return StreamSupport.stream(findAllFriendships().spliterator(),false)
-//             .filter(friendship->friendship.getId().getFirst().equals(user)|| friendship.getId().getSecond().equals(user)&&friendship.getDate().getMonth().toString().equals(mon))
-//             //.filter(friendship->friendship.getDate().getMonth().toString().equals(mon))
-//             .map(friendship->{
-//                 User friend;
-//                 if(friendship.getId().getFirst().equals(user)){
-//                    friend = userRepository.findOne(friendship.getId().getSecond());
-//                 }
-//                 else{
-//                     friend = userRepository.findOne(friendship.getId().getFirst());
-//                 }
-//                 return new UserFriendDTO(friend.getFirstName(),friend.getLastName(),friendship.getDate());
-//             })
-//             .collect(Collectors.toList());
-//    }
+    public Iterable<UserFriendDTO> findFriendsForUser(Integer userId) {
+        return StreamSupport.stream(findAllFriendships().spliterator(), false)
+                .filter(friendship -> friendship.getId().getFirst().equals(userId) || friendship.getId().getSecond().equals(userId))
+                .map(friendship -> {
+                    User friend;
+                    if (friendship.getId().getFirst().equals(userId)) {
+                        friend = userRepository.findOne(friendship.getId().getSecond());
+                    }
+                    else {
+                        friend = userRepository.findOne(friendship.getId().getFirst());
+                    }
+                    return new UserFriendDTO(friend.getFirstName(), friend.getLastName(), friendship.getDate());
+                })
+                .collect(Collectors.toList());
+    }
+
+
 }
