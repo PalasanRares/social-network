@@ -3,6 +3,7 @@ package presentation;
 import application.Service;
 import domain.Friendship;
 import domain.User;
+import domain.UserFriendDTO;
 
 import java.util.Arrays;
 import java.util.List;
@@ -68,6 +69,12 @@ public class UI {
         }
     }
 
+    private void showFriendships(String userId) {
+        for (UserFriendDTO dto : service.findFriendsForUser(Integer.parseInt(userId))) {
+            System.out.println(dto);
+        }
+    }
+
     /**
      * Runs the console user interface
      */
@@ -84,6 +91,7 @@ public class UI {
                 case "ls" -> lsUI(Arrays.copyOfRange(args, 1, args.length));
                 case "connections" -> connectionsUI(Arrays.copyOfRange(args, 1, args.length));
                 case "largest" -> largestUI();
+                case "friendships" -> showFriendships(args[1]);
             }
         }
     }
