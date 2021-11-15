@@ -5,6 +5,7 @@ import domain.Friendship;
 import domain.User;
 import domain.UserFriendDTO;
 
+import java.time.Month;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Scanner;
@@ -23,6 +24,11 @@ public class UI {
         this.service = service;
     }
 
+    private void rel2UI(String args1,String args2){
+        for (UserFriendDTO dto :  service.findRelationsByMonth(Integer.parseInt(args1),args2)) {
+            System.out.println(dto);
+        }
+    }
     private void addUI(String[] args) {
         switch (args[0]) {
             case "user" -> service.addUser(Arrays.copyOfRange(args, 1, args.length));
@@ -74,7 +80,20 @@ public class UI {
             System.out.println(dto);
         }
     }
+    private void uiHelp(){
+        System.out.println("add user <prenume> <nume> <data-nasterii>");
+        System.out.println("add friend <idUser1> <idUser2> <data optionala>");
+        System.out.println("rm user <id>");
+        System.out.println("rm friend <idUser1> <idUser2>");
+        System.out.println("ls users");
+        System.out.println("ls friendships");
+        System.out.println("connections (toate comunitatile)");
+        System.out.println("largest (cel mai lung drum)");
+        System.out.println("friendships <userId>(toti prietenii unui user)");
+        System.out.println("friendshipsMonth <userId> <month>(toti prietenii unui user dupa o anumita luna)");
+        System.out.println("exit");
 
+    }
     /**
      * Runs the console user interface
      */
@@ -86,12 +105,14 @@ public class UI {
             String[] args = scanner.nextLine().split(" ");
             switch (args[0]) {
                 case "exit" -> uiRunning = false;
+                case "help" -> uiHelp();
                 case "add" -> addUI(Arrays.copyOfRange(args, 1, args.length));
                 case "rm" -> rmUI(Arrays.copyOfRange(args, 1, args.length));
                 case "ls" -> lsUI(Arrays.copyOfRange(args, 1, args.length));
                 case "connections" -> connectionsUI(Arrays.copyOfRange(args, 1, args.length));
                 case "largest" -> largestUI();
                 case "friendships" -> showFriendships(args[1]);
+                case "friendshipsMonth" -> rel2UI(args[1],args[2]);
             }
         }
     }
