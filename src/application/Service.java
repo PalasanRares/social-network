@@ -162,7 +162,7 @@ public class Service {
 
     public Iterable<UserFriendDTO> findRelationsByMonth(int user, String mon) {
      return StreamSupport.stream(findAllFriendships().spliterator(),false)
-             .filter(friendship->friendship.getId().getFirst().equals(user)|| friendship.getId().getSecond().equals(user)&&friendship.getDate().getMonth().toString().equals(mon))
+             .filter(friendship->(friendship.getId().getFirst().equals(user)|| friendship.getId().getSecond().equals(user))&&friendship.getDate().getMonth().toString().equals(mon))
              .map(friendship->{
                  User friend;
                  if(friendship.getId().getFirst().equals(user)){
