@@ -99,10 +99,10 @@ public class Network {
             User u1 = null;
             User u2 = null;
             for (User u : userList) {
-                if (u.getId().equals(f.getId().getFirst())) {
+                if (u.getId().equals(f.getId().getFirst().getId())) {
                     u1 = u;
                 }
-                if (u.getId().equals(f.getId().getSecond())) {
+                if (u.getId().equals(f.getId().getSecond().getId())) {
                     u2 = u;
                 }
             }
