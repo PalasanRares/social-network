@@ -19,7 +19,7 @@ import java.util.stream.StreamSupport;
  * Service which manages user and friendship repositories
  */
 public class Service {
-    private final Repository<Tuple<Integer, Integer>, Friendship> friendshipRepository;
+    private final Repository<Tuple<User, User>, Friendship> friendshipRepository;
     private final Repository<Integer, User> userRepository;
 
     /**
@@ -27,7 +27,7 @@ public class Service {
      * @param friendshipRepository friendshipRepository to be used
      * @param userRepository userRepository to be used
      */
-    public Service(Repository<Tuple<Integer, Integer>, Friendship> friendshipRepository, Repository<Integer, User> userRepository) {
+    public Service(Repository<Tuple<User, User>, Friendship> friendshipRepository, Repository<Integer, User> userRepository) {
         this.friendshipRepository = friendshipRepository;
         this.userRepository = userRepository;
     }
@@ -43,7 +43,7 @@ public class Service {
             if (u1 == null || u2 == null) {
                 throw new UserNotFoundException("Could not find user id");
             }
-            Friendship friendship = new Friendship(new Tuple<>(Integer.parseInt(args[0]), Integer.parseInt(args[1])));
+            Friendship friendship = new Friendship(new Tuple<>(u1, u2));
             for (Friendship f : friendshipRepository.findAll()) {
                 if (f.equals(friendship)) {
                     throw new DuplicateFriendshipException("The users are already friends");
@@ -64,7 +64,9 @@ public class Service {
      * @param id2 id of the second user
      */
     public void removeFriendship(String id1, String id2) {
-        Tuple<Integer, Integer> id = new Tuple<>(Integer.parseInt(id1), Integer.parseInt(id2));
+        User user1 = userRepository.findOne(Integer.parseInt(id1));
+        User user2 = userRepository.findOne(Integer.parseInt(id2));
+        Tuple<User, User> id = new Tuple<>(user1, user2);
         if (friendshipRepository.findOne(id) != null) {
             friendshipRepository.remove(id);
         }
@@ -124,7 +126,7 @@ public class Service {
             Iterable<Friendship> friendships = friendshipRepository.findAll();
             if (friendships != null) {
                 for (Friendship friendship : friendships) {
-                    if (friendship.getId().getFirst().equals(user.getId()) || friendship.getId().getSecond().equals(user.getId())) {
+                    if (friendship.getId().getFirst().getId().equals(user.getId()) || friendship.getId().getSecond().getId().equals(user.getId())) {
                         friendshipRepository.remove(friendship.getId());
                     }
                 }
@@ -146,14 +148,14 @@ public class Service {
 
     public Iterable<UserFriendDTO> findFriendsForUser(Integer userId) {
         return StreamSupport.stream(findAllFriendships().spliterator(), false)
-                .filter(friendship -> friendship.getId().getFirst().equals(userId) || friendship.getId().getSecond().equals(userId))
+                .filter(friendship -> friendship.getId().getFirst().getId().equals(userId) || friendship.getId().getSecond().getId().equals(userId))
                 .map(friendship -> {
                     User friend;
-                    if (friendship.getId().getFirst().equals(userId)) {
-                        friend = userRepository.findOne(friendship.getId().getSecond());
+                    if (friendship.getId().getFirst().getId().equals(userId)) {
+                        friend = friendship.getId().getSecond();
                     }
                     else {
-                        friend = userRepository.findOne(friendship.getId().getFirst());
+                        friend = friendship.getId().getFirst();
                     }
                     return new UserFriendDTO(friend.getFirstName(), friend.getLastName(), friendship.getDate());
                 })
@@ -162,14 +164,14 @@ public class Service {
 
     public Iterable<UserFriendDTO> findRelationsByMonth(int user, String mon) {
      return StreamSupport.stream(findAllFriendships().spliterator(),false)
-             .filter(friendship->(friendship.getId().getFirst().equals(user)|| friendship.getId().getSecond().equals(user))&&friendship.getDate().getMonth().toString().equals(mon))
+             .filter(friendship->(friendship.getId().getFirst().getId().equals(user)|| friendship.getId().getSecond().getId().equals(user))&&friendship.getDate().getMonth().toString().equals(mon))
              .map(friendship->{
                  User friend;
                  if(friendship.getId().getFirst().equals(user)){
-                    friend = userRepository.findOne(friendship.getId().getSecond());
+                    friend = friendship.getId().getSecond();
                  }
                  else{
-                     friend = userRepository.findOne(friendship.getId().getFirst());
+                     friend = friendship.getId().getFirst();
                  }
                  return new UserFriendDTO(friend.getFirstName(),friend.getLastName(),friendship.getDate());
              })

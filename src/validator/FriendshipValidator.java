@@ -10,10 +10,10 @@ import validator.exception.ValidationException;
 public class FriendshipValidator implements Validator<Friendship> {
     @Override
     public void validate(Friendship entity) throws ValidationException {
-        if (entity.getId().getFirst() <= 0) {
+        if (entity.getId().getFirst() .getId()<= 0) {
             throw new IdZeroException("The first id cannot be less than one");
         }
-        if (entity.getId().getSecond() <= 0) {
+        if (entity.getId().getSecond().getId() <= 0) {
             throw new IdZeroException("The second id cannot be less than one");
         }
     }
