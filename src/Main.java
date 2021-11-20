@@ -1,9 +1,11 @@
 import application.Service;
+import domain.FriendRequest;
 import domain.Friendship;
 import domain.Tuple;
 import domain.User;
 import presentation.UI;
 import repository.Repository;
+import repository.db.FriendRequestDbRepository;
 import repository.db.FriendshipDbRepository;
 import repository.db.UserDbRepository;
 public class Main {
@@ -13,11 +15,11 @@ public class Main {
      */
     public static void main(String[] args) {
 
-        Repository<Integer, User> userRepository = new UserDbRepository("jdbc:postgresql://localhost:5432/SocialNetwork", "postgres", "postgres");
-        Repository<Tuple<Integer, Integer>, Friendship> friendshipRepository = new FriendshipDbRepository("jdbc:postgresql://localhost:5432/SocialNetwork", "postgres", "postgres");
+        Repository<Integer, User> userRepository = new UserDbRepository("jdbc:postgresql://localhost:5432/SocialNetwork", "postgres", "Indiferent1");
+        Repository<Tuple<User, User>, Friendship> friendshipRepository = new FriendshipDbRepository("jdbc:postgresql://localhost:5432/SocialNetwork", "postgres", "Indiferent1");
+        Repository<Tuple<User, User>, FriendRequest> friendRequestRepository = new FriendRequestDbRepository("jdbc:postgresql://localhost:5432/SocialNetwork", "postgres", "Indiferent1");
 
-
-        Service service = new Service(friendshipRepository, userRepository);
+        Service service = new Service(friendshipRepository, userRepository, friendRequestRepository);
 
        UI ui = new UI(service);
         ui.runUI();

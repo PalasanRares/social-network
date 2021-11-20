@@ -94,6 +94,25 @@ public class UI {
         System.out.println("exit");
 
     }
+
+    private void uiLogin(String userId) {
+        if (!service.loginUser(Integer.parseInt(userId))) {
+            System.out.println("Ups, something went wrong with logging you in");
+        }
+        else {
+            System.out.println("Logged in successfully");
+        }
+    }
+
+    private void uiSendFriendRequest(String friendId) {
+        if (service.getLoggedInUser() == null) {
+            System.out.println("You are not logged in");
+        }
+        else {
+            service.sendFriendRequest(Integer.parseInt(friendId));
+        }
+    }
+
     /**
      * Runs the console user interface
      */
@@ -113,6 +132,8 @@ public class UI {
                 case "largest" -> largestUI();
                 case "friendships" -> showFriendships(args[1]);
                 case "friendshipsMonth" -> rel2UI(args[1],args[2]);
+                case "login" -> uiLogin(args[1]);
+                case "sendRequest" -> uiSendFriendRequest(args[1]);
             }
         }
     }

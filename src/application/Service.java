@@ -21,15 +21,20 @@ import java.util.stream.StreamSupport;
 public class Service {
     private final Repository<Tuple<User, User>, Friendship> friendshipRepository;
     private final Repository<Integer, User> userRepository;
+    private final Repository<Tuple<User, User>, FriendRequest> friendRequestRepository;
+
+    private User loggedInUser;
 
     /**
      * Creates an instance of type Services
      * @param friendshipRepository friendshipRepository to be used
      * @param userRepository userRepository to be used
      */
-    public Service(Repository<Tuple<User, User>, Friendship> friendshipRepository, Repository<Integer, User> userRepository) {
+    public Service(Repository<Tuple<User, User>, Friendship> friendshipRepository, Repository<Integer, User> userRepository, Repository<Tuple<User, User>, FriendRequest> friendRequestRepository) {
         this.friendshipRepository = friendshipRepository;
         this.userRepository = userRepository;
+        this.friendRequestRepository = friendRequestRepository;
+        loggedInUser = null;
     }
 
     /**
@@ -176,5 +181,32 @@ public class Service {
                  return new UserFriendDTO(friend.getFirstName(),friend.getLastName(),friendship.getDate());
              })
              .collect(Collectors.toList());
+    }
+
+    public boolean loginUser(Integer userId) {
+        User foundUser = userRepository.findOne(userId);
+        if (foundUser == null) {
+            return false;
+        }
+        loggedInUser = foundUser;
+        return true;
+    }
+
+    public User getLoggedInUser() {
+        return loggedInUser;
+    }
+
+    public void sendFriendRequest(Integer friendId) {
+        try {
+            User friend = userRepository.findOne(friendId);
+            if (friend == null) {
+                throw new UserNotFoundException("User was not found");
+            }
+            FriendRequest friendRequest = new FriendRequest(new Tuple<>(loggedInUser, friend), "pending");
+            friendRequestRepository.save(friendRequest);
+        }
+        catch (RuntimeException ex) {
+            System.out.println(ex.getMessage());
+        }
     }
 }
