@@ -15,6 +15,11 @@ public class FriendRequest extends Entity<Tuple<User, User>> {
     }
 
     @Override
+    public String toString() {
+        return "From: " + id.getFirst() + " | To: " + id.getSecond() + " | Status: " + status;
+    }
+
+    @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;

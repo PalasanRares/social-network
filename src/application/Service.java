@@ -2,9 +2,11 @@ package application;
 
 import constants.DateFormatter;
 import domain.*;
+import repository.ModifiableRepository;
 import repository.Repository;
 import validator.exception.DuplicateFriendshipException;
 import validator.exception.UserNotFoundException;
+import validator.exception.ValidationException;
 
 import java.time.LocalDate;
 
@@ -21,7 +23,7 @@ import java.util.stream.StreamSupport;
 public class Service {
     private final Repository<Tuple<User, User>, Friendship> friendshipRepository;
     private final Repository<Integer, User> userRepository;
-    private final Repository<Tuple<User, User>, FriendRequest> friendRequestRepository;
+    private final ModifiableRepository<Tuple<User, User>, FriendRequest> friendRequestRepository;
 
     private User loggedInUser;
 
@@ -30,7 +32,7 @@ public class Service {
      * @param friendshipRepository friendshipRepository to be used
      * @param userRepository userRepository to be used
      */
-    public Service(Repository<Tuple<User, User>, Friendship> friendshipRepository, Repository<Integer, User> userRepository, Repository<Tuple<User, User>, FriendRequest> friendRequestRepository) {
+    public Service(Repository<Tuple<User, User>, Friendship> friendshipRepository, Repository<Integer, User> userRepository, ModifiableRepository<Tuple<User, User>, FriendRequest> friendRequestRepository) {
         this.friendshipRepository = friendshipRepository;
         this.userRepository = userRepository;
         this.friendRequestRepository = friendRequestRepository;
@@ -203,7 +205,49 @@ public class Service {
                 throw new UserNotFoundException("User was not found");
             }
             FriendRequest friendRequest = new FriendRequest(new Tuple<>(loggedInUser, friend), "pending");
+            if (friendRequestRepository.findOne(friendRequest.getId()) != null) {
+                throw new DuplicateFriendshipException("This friend request already exists");
+            }
             friendRequestRepository.save(friendRequest);
+        }
+        catch (RuntimeException ex) {
+            System.out.println(ex.getMessage());
+        }
+    }
+
+    public Iterable<FriendRequest> getFriendRequests() {
+        return friendRequestRepository.findAllForId(new Tuple<>(new User(), loggedInUser));
+    }
+
+    public void acceptFriendRequest(Integer from) {
+        try {
+            User friend = userRepository.findOne(from);
+            if (friend == null) {
+                throw new UserNotFoundException("User was not found");
+            }
+            FriendRequest toAccept = new FriendRequest(new Tuple<>(friend, loggedInUser), "accepted");
+            if (!friendRequestRepository.modify(toAccept)) {
+                throw new ValidationException("Request could not be accepted");
+            }
+            else {
+                friendshipRepository.save(new Friendship(toAccept.getId()));
+            }
+        }
+        catch (RuntimeException ex) {
+            System.out.println(ex.getMessage());
+        }
+    }
+
+    public void rejectFriendRequest(Integer from) {
+        try {
+            User friend = userRepository.findOne(from);
+            if (friend == null) {
+                throw new UserNotFoundException("User was not found");
+            }
+            FriendRequest toReject = new FriendRequest(new Tuple<>(friend, loggedInUser), "rejected");
+            if (!friendRequestRepository.modify(toReject)) {
+                throw new ValidationException("Request could not be rejected");
+            }
         }
         catch (RuntimeException ex) {
             System.out.println(ex.getMessage());
