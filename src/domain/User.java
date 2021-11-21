@@ -30,6 +30,12 @@ public class User extends Entity<Integer> {
         this.birthday = birthday;
     }
 
+    public User() {
+        this.firstName = null;
+        this.lastName = null;
+        this.birthday = null;
+    }
+
     /**
      * Add a friend to the user's friends list
      * @param friend friend to be added

@@ -1,11 +1,11 @@
 package presentation;
 
 import application.Service;
+import domain.FriendRequest;
 import domain.Friendship;
 import domain.User;
 import domain.UserFriendDTO;
 
-import java.time.Month;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Scanner;
@@ -91,9 +91,52 @@ public class UI {
         System.out.println("largest (cel mai lung drum)");
         System.out.println("friendships <userId>(toti prietenii unui user)");
         System.out.println("friendshipsMonth <userId> <month>(toti prietenii unui user dupa o anumita luna)");
+        System.out.println("login <userId>");
+        System.out.println("sendRequest <userId> (trimite cerere catre userul specificat)");
+        System.out.println("seeRequests (afiseaza toate cererile primite de userul curent)");
+        System.out.println("acceptRequest <userId> (accepta cererea de la userul specificat)");
+        System.out.println("rejectRequest <userId> (refuza cererea de la userul specificat)");
         System.out.println("exit");
 
     }
+
+    private void uiLogin(String userId) {
+        if (!service.loginUser(Integer.parseInt(userId))) {
+            System.out.println("Ups, something went wrong with logging you in");
+        }
+        else {
+            System.out.println("Logged in successfully");
+        }
+    }
+
+    private void uiSendFriendRequest(String friendId) {
+        if (service.getLoggedInUser() == null) {
+            System.out.println("You are not logged in");
+        }
+        else {
+            service.sendFriendRequest(Integer.parseInt(friendId));
+        }
+    }
+
+    private void uiSeeFriendRequests() {
+        if (service.getLoggedInUser() != null) {
+            for (FriendRequest friendRequest : service.getFriendRequests()) {
+                System.out.println(friendRequest);
+            }
+        }
+        else {
+            System.out.println("You are not logged in");
+        }
+    }
+
+    private void uiAcceptRequest(String from) {
+        service.acceptFriendRequest(Integer.parseInt(from));
+    }
+
+    private void uiRejectRequest(String from) {
+        service.rejectFriendRequest(Integer.parseInt(from));
+    }
+
     /**
      * Runs the console user interface
      */
@@ -113,6 +156,11 @@ public class UI {
                 case "largest" -> largestUI();
                 case "friendships" -> showFriendships(args[1]);
                 case "friendshipsMonth" -> rel2UI(args[1],args[2]);
+                case "login" -> uiLogin(args[1]);
+                case "sendRequest" -> uiSendFriendRequest(args[1]);
+                case "seeRequests" -> uiSeeFriendRequests();
+                case "acceptRequest" -> uiAcceptRequest(args[1]);
+                case "rejectRequest" -> uiRejectRequest(args[1]);
             }
         }
     }
