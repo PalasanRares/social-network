@@ -5,14 +5,14 @@ import domain.*;
 import repository.ModifiableRepository;
 import repository.Repository;
 import validator.exception.DuplicateFriendshipException;
+import validator.exception.MessageNotFoundException;
 import validator.exception.UserNotFoundException;
 import validator.exception.ValidationException;
 
+import javax.swing.text.html.parser.Parser;
 import java.time.LocalDate;
 
 import java.util.ArrayList;
-import java.util.Arrays;
-
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
@@ -24,17 +24,18 @@ public class Service {
     private final Repository<Tuple<User, User>, Friendship> friendshipRepository;
     private final Repository<Integer, User> userRepository;
     private final ModifiableRepository<Tuple<User, User>, FriendRequest> friendRequestRepository;
-
     private User loggedInUser;
-
+    private final Repository<Integer, Message> messageRepository;
     /**
      * Creates an instance of type Services
      * @param friendshipRepository friendshipRepository to be used
      * @param userRepository userRepository to be used
+     * @param messageRepository
      */
-    public Service(Repository<Tuple<User, User>, Friendship> friendshipRepository, Repository<Integer, User> userRepository, ModifiableRepository<Tuple<User, User>, FriendRequest> friendRequestRepository) {
+    public Service(Repository<Tuple<User, User>, Friendship> friendshipRepository, Repository<Integer, User> userRepository, Repository<Integer, Message> messageRepository, ModifiableRepository<Tuple<User, User>, FriendRequest> friendRequestRepository) {
         this.friendshipRepository = friendshipRepository;
         this.userRepository = userRepository;
+        this.messageRepository = messageRepository;
         this.friendRequestRepository = friendRequestRepository;
         loggedInUser = null;
     }
@@ -88,6 +89,13 @@ public class Service {
     }
 
     /**
+     * Returns all the messages from the repository
+     * @return an iterable object containing all the messages in repository
+     */
+    public Iterable<Message> findAllMessages() {
+        return messageRepository.findAll();
+    }
+    /**
      * Return the largest connected component of the friendship network
      * @return the number of users in the largest component
      */
@@ -119,11 +127,49 @@ public class Service {
         User user = new User(args[0], args[1], LocalDate.parse(args[2], DateFormatter.STANDARD_DATE_FORMAT));
         userRepository.save(user);
     }
-
     /**
-     * Removes a user based on his id
-     * @param id id of the user to be removes
+     * Creates and adds a new message to the message repository
+     * @param args attributes of the new message
      */
+    public void addMessage(String[] args){
+        User sender = userRepository.findOne(Integer.parseInt(args[0]));
+        List<User> list = new ArrayList<>();
+        int i=1;
+        while(Integer.parseInt(args[i])!=0){
+            User r=userRepository.findOne(Integer.parseInt(args[i]));
+            if(r!=null)
+                list.add(r);
+            i++;
+        }
+        i++;
+        Message msg = new Message(sender,list,args[i],LocalDate.now(),null);
+        messageRepository.save(msg);
+    }
+    /**
+     * Removes a message based on his id
+     * @param id id of the message to be removed
+     */
+    public void removeMessage(String id) {
+        try {
+            Message msg = messageRepository.findOne(Integer.parseInt(id));
+            if (msg == null) {
+                throw new MessageNotFoundException("Could not find message id");
+            }
+            Iterable<Message> messages = messageRepository.findAll();
+            if (messages != null) {
+                for (Message m : messages) {
+                    if (m.getReply().getId().equals(Integer.parseInt(id))) {
+                        //update reply sa fie null pt ca nu mai exista mesajul
+                        m.setReply(null);
+                    }
+                }
+            }
+            messageRepository.remove(Integer.parseInt(id));
+        } catch (RuntimeException ex) {
+            System.out.println(ex.getMessage());
+        }
+    }
+
     public void removeUser(String id) {
         try {
             User user = userRepository.findOne(Integer.parseInt(id));
