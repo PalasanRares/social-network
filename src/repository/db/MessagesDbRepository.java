@@ -2,9 +2,12 @@ package repository.db;
 
 import domain.Message;
 import domain.User;
+import repository.ConvRepository;
+import repository.ModifiableRepository;
 import repository.Repository;
 import validator.MessageValidator;
 import validator.Validator;
+import validator.exception.MessageNotFoundException;
 import validator.exception.ValidationException;
 
 import java.sql.*;
@@ -12,7 +15,7 @@ import java.sql.Date;
 import java.time.LocalDate;
 import java.util.*;
 
-public class MessagesDbRepository implements Repository<Integer, Message> {
+public class MessagesDbRepository implements ConvRepository<Integer, Message> {
     private final String url;
     private final String username;
     private final String password;
@@ -40,7 +43,13 @@ public class MessagesDbRepository implements Repository<Integer, Message> {
             ps.setArray(2, array);
             ps.setString(3, entity.getMessage());
             ps.setDate(4, Date.valueOf(entity.getData()));
-            ps.setInt(5,entity.getReply().getId());
+            if (entity.getReply()==null) {
+                ps.setNull(5, Types.INTEGER);
+            }
+            else {
+                ps.setInt(5,entity.getReply().getId());
+            }
+
             ps.executeUpdate();
         } catch (SQLException e) {
             e.printStackTrace();
@@ -112,6 +121,7 @@ public class MessagesDbRepository implements Repository<Integer, Message> {
     }
     public List<User> getReceiversList(Array rec){
         List<User> rez =new ArrayList<>();
+
         try (Connection connection = DriverManager.getConnection(url, username, password);
              PreparedStatement ps = connection.prepareStatement("SELECT * FROM \"Users\" WHERE \"UserId\" = ?")) {
             Integer[] reclist = (Integer[])rec.getArray();
@@ -133,7 +143,36 @@ public class MessagesDbRepository implements Repository<Integer, Message> {
         }
         return rez;
     }
+    public  List<Message> conversatie(Integer u1 ,Integer u2){
+        List<Message> messages = new ArrayList<>();
+        String sql ="SELECT *  from \"Messages\" WHERE ((\"SenderId\" = ? AND ? = any(\"ReceiversIds\")) OR (\"SenderId\" = ? AND ? = any(\"ReceiversIds\"))) ORDER BY \"SendingDate\" ASC ; ";
+        try (Connection connection = DriverManager.getConnection(url, username, password);
+             PreparedStatement ps = connection.prepareStatement(sql) ){
+                  ps.setInt(1,u1);
+                  ps.setInt(2,u2);
+                  ps.setInt(3,u2);
+                  ps.setInt(4,u1);
+                  ResultSet resultSet = ps.executeQuery();
+                 while (resultSet.next()) {
+                Integer id = resultSet.getInt("Id");
+                Integer sid = resultSet.getInt("SenderId");
+                Array rec= resultSet.getArray("ReceiversIds");
+                String msg = resultSet.getString("Message");
+                LocalDate day = resultSet.getDate("SendingDate").toLocalDate();
+                Integer reply = resultSet.getInt("ReplyTo");
 
+                List<User> receivers = getReceiversList(rec);
+                Message message = new Message(getSender(sid),receivers,msg,day,findOne(reply));
+                message.setId(id);
+                messages.add(message);
+            }
+            return messages;
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return messages;
+
+    }
     @Override
     public Iterable<Message> findAll() {
         Set<Message> messages = new HashSet<>();
@@ -182,5 +221,41 @@ public class MessagesDbRepository implements Repository<Integer, Message> {
             e.printStackTrace();
         }
         return 0;
+    }
+
+    @Override
+    public boolean modify(Message newEntity) {
+        //if(newEntity.getId()==null)throw NullPointerException("Id must not be null");
+        //if(findOne(newEntity.getId())==null)throw MessageNotFoundException("The message you want to modify does not exist!");
+        //de mutat in service
+        String sql = "UPDATE \"Messages\" SET \"Message\" = ? , \"ReplyTo\" = ? WHERE \"Id\" = ? ";
+        try (Connection connection = DriverManager.getConnection(url, username, password);
+             PreparedStatement ps = connection.prepareStatement(sql)) {
+            ps.setString(1, newEntity.getMessage());
+            //ps.setInt(2, newEntity.getReply().getId());
+            if (newEntity.getReply()==null) {
+                ps.setNull(2, Types.INTEGER);
+            }
+            else {
+                ps.setInt(2,newEntity.getReply().getId());
+            }
+            ps.setInt(3, newEntity.getId());
+            ps.executeUpdate();
+        }
+        catch (SQLException ex) {
+            ex.printStackTrace();
+            return false;
+        }
+        return true;
+    }
+
+    @Override
+    public Iterable<Message> findAllForId(Integer integer) {
+        List<Message> list = new ArrayList<>();
+        for(Message m:findAll()){
+            if(m.getSender().getId().equals(integer))
+                list.add(m);
+        }
+            return list;
     }
 }

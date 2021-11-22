@@ -76,11 +76,11 @@ public class Message extends Entity<Integer>{
     @Override
     public String toString() {
         return "Message{" +
-                "id=" + id +
-                ", sender=" + sender +
+                "sender=" + sender +
                 ", receivers=" + receivers +
                 ", message='" + message + '\'' +
                 ", data=" + data +
+                ", reply=" + reply +
                 '}';
     }
 }
