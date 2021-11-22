@@ -38,4 +38,6 @@ public interface Repository<ID, EType extends Entity<ID>> {
      * @return number of elements in the repository
      */
     int size();
+
+
 }

@@ -1,7 +1,10 @@
 package application;
 
 import constants.DateFormatter;
+import constants.Sortbydate;
 import domain.*;
+import org.postgresql.util.PSQLException;
+import repository.ConvRepository;
 import repository.ModifiableRepository;
 import repository.Repository;
 import validator.exception.DuplicateFriendshipException;
@@ -9,10 +12,12 @@ import validator.exception.MessageNotFoundException;
 import validator.exception.UserNotFoundException;
 import validator.exception.ValidationException;
 
-import javax.swing.text.html.parser.Parser;
+
 import java.time.LocalDate;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
@@ -25,14 +30,14 @@ public class Service {
     private final Repository<Integer, User> userRepository;
     private final ModifiableRepository<Tuple<User, User>, FriendRequest> friendRequestRepository;
     private User loggedInUser;
-    private final Repository<Integer, Message> messageRepository;
+    private final ConvRepository<Integer, Message> messageRepository;
     /**
      * Creates an instance of type Services
      * @param friendshipRepository friendshipRepository to be used
      * @param userRepository userRepository to be used
-     * @param messageRepository
+     * @param messageRepository messageRepository to be used
      */
-    public Service(Repository<Tuple<User, User>, Friendship> friendshipRepository, Repository<Integer, User> userRepository, Repository<Integer, Message> messageRepository, ModifiableRepository<Tuple<User, User>, FriendRequest> friendRequestRepository) {
+    public Service(Repository<Tuple<User, User>, Friendship> friendshipRepository, Repository<Integer, User> userRepository, ConvRepository<Integer, Message> messageRepository, ModifiableRepository<Tuple<User, User>, FriendRequest> friendRequestRepository) {
         this.friendshipRepository = friendshipRepository;
         this.userRepository = userRepository;
         this.messageRepository = messageRepository;
@@ -132,18 +137,32 @@ public class Service {
      * @param args attributes of the new message
      */
     public void addMessage(String[] args){
-        User sender = userRepository.findOne(Integer.parseInt(args[0]));
+
+        //User sender = userRepository.findOne(Integer.parseInt(args[0]));
+        User sender =userRepository.findOne(getLoggedInUser().getId());
         List<User> list = new ArrayList<>();
-        int i=1;
-        while(Integer.parseInt(args[i])!=0){
-            User r=userRepository.findOne(Integer.parseInt(args[i]));
-            if(r!=null)
-                list.add(r);
-            i++;
-        }
+        int i=0;
+
+            while (Integer.parseInt(args[i]) != 0) {
+                User r = userRepository.findOne(Integer.parseInt(args[i]));
+                if (r != null)
+                    list.add(r);
+                i++;
+            }
+
         i++;
         Message msg = new Message(sender,list,args[i],LocalDate.now(),null);
         messageRepository.save(msg);
+    }
+    public  Iterable<Message> Conversatie(Integer u1,Integer u2){
+        if(u1 == null || u2 == null)throw new NullPointerException("id must not be null");
+        User user1 = userRepository.findOne(u1);
+        User user2 = userRepository.findOne(u2);
+        if(user1 == null || user2 == null )throw new UserNotFoundException("user does not exist");
+
+        List<Message> ar=messageRepository.conversatie(u1,u2);
+        Collections.sort(ar, new Sortbydate());
+        return ar;
     }
     /**
      * Removes a message based on his id
@@ -158,9 +177,12 @@ public class Service {
             Iterable<Message> messages = messageRepository.findAll();
             if (messages != null) {
                 for (Message m : messages) {
-                    if (m.getReply().getId().equals(Integer.parseInt(id))) {
+                    if (m.getReply()!=null && m.getReply().getId()!=null)
+                        if(m.getReply().getId().equals(Integer.parseInt(id))) {
                         //update reply sa fie null pt ca nu mai exista mesajul
-                        m.setReply(null);
+                            Message ms= new Message(null,null,m.getMessage(),null,null);
+                            ms.setId(m.getId());
+                            messageRepository.modify(ms);
                     }
                 }
             }
@@ -168,8 +190,21 @@ public class Service {
         } catch (RuntimeException ex) {
             System.out.println(ex.getMessage());
         }
-    }
 
+    }
+    public void modifyMessage(Integer id,String msg,Integer reply){
+        if(id == null)throw new NullPointerException("id must not be null");
+        Message m = messageRepository.findOne(id);
+        if(m == null)throw new MessageNotFoundException("message not found");
+        try {
+            Message ms= new Message(null,null,msg,null,messageRepository.findOne(reply));
+            ms.setId(id);
+            messageRepository.modify(ms);
+
+        } catch (RuntimeException ex) {
+            System.out.println(ex.getMessage());
+        }
+    }
     public void removeUser(String id) {
         try {
             User user = userRepository.findOne(Integer.parseInt(id));
@@ -220,7 +255,7 @@ public class Service {
              .filter(friendship->(friendship.getId().getFirst().getId().equals(user)|| friendship.getId().getSecond().getId().equals(user))&&friendship.getDate().getMonth().toString().equals(mon))
              .map(friendship->{
                  User friend;
-                 if(friendship.getId().getFirst().equals(user)){
+                 if(friendship.getId().getFirst().equals(userRepository.findOne(user))){
                     friend = friendship.getId().getSecond();
                  }
                  else{
