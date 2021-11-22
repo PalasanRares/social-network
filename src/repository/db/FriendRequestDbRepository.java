@@ -57,29 +57,28 @@ public class FriendRequestDbRepository implements ModifiableRepository<Tuple<Use
     public FriendRequest findOne(Tuple<User, User> id) {
         FriendRequest request = null;
         try (Connection connection = DriverManager.getConnection(url, username, password);
-             PreparedStatement ps = connection.prepareStatement("SELECT * FROM friend_requests WHERE \"from\" = ? AND \"to\" = ? OR \"from\" = ? AND \"to\" = ?")) {
+             PreparedStatement ps = connection.prepareStatement("SELECT * FROM friend_requests WHERE \"from\" = ? AND \"to\" = ?")) {
             ps.setInt(1, id.getFirst().getId());
             ps.setInt(2, id.getSecond().getId());
-            ps.setInt(3, id.getSecond().getId());
-            ps.setInt(4, id.getFirst().getId());
             ResultSet resultSet = ps.executeQuery();
-            resultSet.next();
-            Integer id1 = resultSet.getInt("from");
-            Integer id2 = resultSet.getInt("to");
-            String status = resultSet.getString("status");
+            if (resultSet.next()) {
+                Integer id1 = resultSet.getInt("from");
+                Integer id2 = resultSet.getInt("to");
+                String status = resultSet.getString("status");
 
-            PreparedStatement psUsers = connection.prepareStatement("SELECT * FROM \"Users\" WHERE \"UserId\" = ? OR \"UserId\" = ?");
-            psUsers.setInt(1, id1);
-            psUsers.setInt(2, id2);
-            ResultSet users = psUsers.executeQuery();
-            users.next();
-            User user1 = new User(users.getString("FirstName"), users.getString("LastName"), users.getDate("Birthday").toLocalDate());
-            user1.setId(users.getInt("UserId"));
-            users.next();
-            User user2 = new User(users.getString("FirstName"), users.getString("LastName"), users.getDate("Birthday").toLocalDate());
-            user2.setId(users.getInt("UserId"));
+                PreparedStatement psUsers = connection.prepareStatement("SELECT * FROM \"Users\" WHERE \"UserId\" = ? OR \"UserId\" = ?");
+                psUsers.setInt(1, id1);
+                psUsers.setInt(2, id2);
+                ResultSet users = psUsers.executeQuery();
+                users.next();
+                User user1 = new User(users.getString("FirstName"), users.getString("LastName"), users.getDate("Birthday").toLocalDate());
+                user1.setId(users.getInt("UserId"));
+                users.next();
+                User user2 = new User(users.getString("FirstName"), users.getString("LastName"), users.getDate("Birthday").toLocalDate());
+                user2.setId(users.getInt("UserId"));
 
-            request = new FriendRequest(new Tuple<>(user1, user2), status);
+                request = new FriendRequest(new Tuple<>(user1, user2), status);
+            }
         } catch (SQLException e) {
             e.printStackTrace();
         }
@@ -107,13 +106,18 @@ public class FriendRequestDbRepository implements ModifiableRepository<Tuple<Use
                 psUsers.setInt(1, from);
                 psUsers.setInt(2, to);
                 ResultSet users = psUsers.executeQuery();
-                users.next();
-                User user1 = new User(users.getString("FirstName"), users.getString("LastName"), users.getDate("Birthday").toLocalDate());
-                user1.setId(users.getInt("UserId"));
-                users.next();
-                User user2 = new User(users.getString("FirstName"), users.getString("LastName"), users.getDate("Birthday").toLocalDate());
-                user2.setId(users.getInt("UserId"));
-
+                User user1 = new User();
+                User user2 = new User();
+                while (users.next()) {
+                    if (users.getInt("UserId") == from) {
+                        user1 = new User(users.getString("FirstName"), users.getString("LastName"), users.getDate("Birthday").toLocalDate());
+                        user1.setId(from);
+                    }
+                    if (users.getInt("UserId") == to) {
+                        user2 = new User(users.getString("FirstName"), users.getString("LastName"), users.getDate("Birthday").toLocalDate());
+                        user2.setId(to);
+                    }
+                }
                 FriendRequest friendRequest = new FriendRequest(new Tuple<User, User>(user1, user2), status);
                 requests.add(friendRequest);
             }
@@ -130,14 +134,12 @@ public class FriendRequestDbRepository implements ModifiableRepository<Tuple<Use
 
     @Override
     public boolean modify(FriendRequest newRequest) {
-        String sql = "UPDATE friend_requests SET status = ? WHERE \"from\" = ? AND \"to\" = ? OR \"from\" = ? AND \"to\" = ?";
+        String sql = "UPDATE friend_requests SET status = ? WHERE \"from\" = ? AND \"to\" = ?";
         try (Connection connection = DriverManager.getConnection(url, username, password);
             PreparedStatement ps = connection.prepareStatement(sql)) {
             ps.setString(1, newRequest.getStatus());
             ps.setInt(2, newRequest.getId().getFirst().getId());
             ps.setInt(3, newRequest.getId().getSecond().getId());
-            ps.setInt(4, newRequest.getId().getSecond().getId());
-            ps.setInt(5, newRequest.getId().getFirst().getId());
             ps.executeUpdate();
         }
         catch (SQLException ex) {

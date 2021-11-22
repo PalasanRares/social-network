@@ -225,7 +225,11 @@ public class Service {
             if (friend == null) {
                 throw new UserNotFoundException("User was not found");
             }
-            FriendRequest toAccept = new FriendRequest(new Tuple<>(friend, loggedInUser), "accepted");
+            Tuple<User, User> requestId = new Tuple<>(friend, loggedInUser);
+            if (!friendRequestRepository.findOne(requestId).getStatus().equals("pending")) {
+                throw new ValidationException("Cannot accept request");
+            }
+            FriendRequest toAccept = new FriendRequest(requestId, "accepted");
             if (!friendRequestRepository.modify(toAccept)) {
                 throw new ValidationException("Request could not be accepted");
             }
@@ -244,7 +248,11 @@ public class Service {
             if (friend == null) {
                 throw new UserNotFoundException("User was not found");
             }
-            FriendRequest toReject = new FriendRequest(new Tuple<>(friend, loggedInUser), "rejected");
+            Tuple<User, User> requestId = new Tuple<>(friend, loggedInUser);
+            if (!friendRequestRepository.findOne(requestId).getStatus().equals("pending")) {
+                throw new ValidationException("Cannot reject request");
+            }
+            FriendRequest toReject = new FriendRequest(requestId, "rejected");
             if (!friendRequestRepository.modify(toReject)) {
                 throw new ValidationException("Request could not be rejected");
             }
