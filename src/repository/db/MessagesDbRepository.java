@@ -35,27 +35,54 @@ public class MessagesDbRepository implements ConvRepository<Integer, Message> {
             System.out.println(ex.getMessage());
             return;
         }
-        String sql = "INSERT INTO \"Messages\" (\"SenderId\", \"ReceiversIds\", \"Message\", \"SendingDate\", \"ReplyTo\") VALUES (?, ?, ? ,? ,?)";
+        String sql = "INSERT INTO \"Messages\" (\"SenderId\", \"Message\", \"SendingDate\", \"ReplyTo\") VALUES (?, ? ,? ,?)";
         try (Connection connection = DriverManager.getConnection(url, username, password);
              PreparedStatement ps = connection.prepareStatement(sql)) {
             ps.setInt(1, entity.getSender().getId());
-            Array array = connection.createArrayOf("int", entity.getRIds().toArray());
-            ps.setArray(2, array);
-            ps.setString(3, entity.getMessage());
-            ps.setDate(4, Date.valueOf(entity.getData()));
+
+            ps.setString(2, entity.getMessage());
+            ps.setDate(3, Date.valueOf(entity.getData()));
             if (entity.getReply()==null) {
-                ps.setNull(5, Types.INTEGER);
+                ps.setNull(4, Types.INTEGER);
             }
             else {
-                ps.setInt(5,entity.getReply().getId());
+                ps.setInt(4,entity.getReply().getId());
             }
 
             ps.executeUpdate();
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        //String sql2 = "SELECT TOP 1 * FROM \"Messages\" ORDER BY ID DESC";
+        String sql2="SELECT \"Id\" FROM \"Messages\" ORDER BY \"Id\" DESC LIMIT 1";
+        try (Connection connection = DriverManager.getConnection(url, username, password);
+             PreparedStatement psu = connection.prepareStatement(sql2)) {
+
+            ResultSet resultSet = psu.executeQuery();
+            while (resultSet.next()) {
+            Integer id = resultSet.getInt("Id");
+
+            saveReceivers(id,entity.getReceivers());}
         } catch (SQLException e) {
             e.printStackTrace();
         }
     }
+    public void saveReceivers(Integer msgId,List<User> receivers){
+        String sql = "INSERT INTO \"MessagesUsers\" (\"MessageId\", \"UserId\") VALUES (?, ?)";
+        try (Connection connection = DriverManager.getConnection(url, username, password);
+             PreparedStatement ps = connection.prepareStatement(sql)) {
 
+            for(User u:receivers){
+                ps.setInt(1, msgId);
+                ps.setInt(2, u.getId());
+                ps.executeUpdate();
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
     @Override
     public void remove(Integer integer) {
         String sql = "DELETE FROM \"Messages\" WHERE \"Id\" = ?";
@@ -77,7 +104,6 @@ public class MessagesDbRepository implements ConvRepository<Integer, Message> {
             ResultSet resultSet = ps.executeQuery();
             while (resultSet.next()) {
                 Integer sid = resultSet.getInt("SenderId");
-                Array rec= resultSet.getArray("ReceiversIds");
                 String msg = resultSet.getString("Message");
                 LocalDate day = resultSet.getDate("SendingDate").toLocalDate();
                 Integer reply = resultSet.getInt("ReplyTo");
@@ -91,7 +117,7 @@ public class MessagesDbRepository implements ConvRepository<Integer, Message> {
                // User sender = new User(firstName, lastName, birthday);
                // sender.setId(sid);
 
-                List<User> receivers = getReceiversList(rec);
+                List<User> receivers = getReceiversList(integer);
                 message = new Message(getSender(sid),receivers,msg,day,findOne(reply));
                 message.setId(integer);
             }
@@ -119,25 +145,23 @@ public class MessagesDbRepository implements ConvRepository<Integer, Message> {
         return user;
 
     }
-    public List<User> getReceiversList(Array rec){
+    public List<User> getReceiversList(Integer id){
         List<User> rez =new ArrayList<>();
 
         try (Connection connection = DriverManager.getConnection(url, username, password);
-             PreparedStatement ps = connection.prepareStatement("SELECT * FROM \"Users\" WHERE \"UserId\" = ?")) {
-            Integer[] reclist = (Integer[])rec.getArray();
-            for( Integer id: reclist){
+             PreparedStatement ps = connection.prepareStatement("SELECT \"UserId\" FROM  \"MessagesUsers\" WHERE \"MessageId\"= ? ")) {
+
                 ps.setInt(1, id);
                 ResultSet resultSet = ps.executeQuery();
 
             while (resultSet.next()) {
-                String firstName = resultSet.getString("FirstName");
-                String lastName = resultSet.getString("LastName");
-                LocalDate birthday = resultSet.getDate("Birthday").toLocalDate();
-                User us = new User(firstName, lastName, birthday);
-                us.setId(id);
+               Integer usid = resultSet.getInt("UserId");
+
+                User us = getSender(usid);//find one user
+                us.setId(usid);
                 rez.add(us);
             }
-            }
+
         } catch (SQLException e) {
             e.printStackTrace();
         }
@@ -145,7 +169,7 @@ public class MessagesDbRepository implements ConvRepository<Integer, Message> {
     }
     public  List<Message> conversatie(Integer u1 ,Integer u2){
         List<Message> messages = new ArrayList<>();
-        String sql ="SELECT *  from \"Messages\" WHERE ((\"SenderId\" = ? AND ? = any(\"ReceiversIds\")) OR (\"SenderId\" = ? AND ? = any(\"ReceiversIds\"))) ORDER BY \"SendingDate\" ASC ; ";
+        String sql ="Select e.\"Id\",e.\"SenderId\",e.\"Message\",e.\"SendingDate\",e.\"ReplyTo\" from \"Messages\" e INNER JOIN \"MessagesUsers\" mu on e.\"Id\"=mu.\"MessageId\" WHERE (e.\"SenderId\" =? AND mu.\"UserId\" = ?) OR (e.\"SenderId\" = ? AND mu.\"UserId\"= ?)   ";
         try (Connection connection = DriverManager.getConnection(url, username, password);
              PreparedStatement ps = connection.prepareStatement(sql) ){
                   ps.setInt(1,u1);
@@ -156,12 +180,12 @@ public class MessagesDbRepository implements ConvRepository<Integer, Message> {
                  while (resultSet.next()) {
                 Integer id = resultSet.getInt("Id");
                 Integer sid = resultSet.getInt("SenderId");
-                Array rec= resultSet.getArray("ReceiversIds");
+
                 String msg = resultSet.getString("Message");
                 LocalDate day = resultSet.getDate("SendingDate").toLocalDate();
                 Integer reply = resultSet.getInt("ReplyTo");
 
-                List<User> receivers = getReceiversList(rec);
+                List<User> receivers = getReceiversList(id);
                 Message message = new Message(getSender(sid),receivers,msg,day,findOne(reply));
                 message.setId(id);
                 messages.add(message);
@@ -182,7 +206,7 @@ public class MessagesDbRepository implements ConvRepository<Integer, Message> {
             while (resultSet.next()) {
                 Integer id = resultSet.getInt("Id");
                 Integer sid = resultSet.getInt("SenderId");
-                Array rec= resultSet.getArray("ReceiversIds");
+                //Array rec= resultSet.getArray("ReceiversIds");
                 String msg = resultSet.getString("Message");
                 LocalDate day = resultSet.getDate("SendingDate").toLocalDate();
                 Integer reply = resultSet.getInt("ReplyTo");
@@ -196,7 +220,7 @@ public class MessagesDbRepository implements ConvRepository<Integer, Message> {
                 //User sender = new User(firstName, lastName, birthday);
                // sender.setId(sid);
 
-                List<User> receivers = getReceiversList(rec);
+                List<User> receivers = getReceiversList(id);
                 Message message = new Message(getSender(sid),receivers,msg,day,findOne(reply));
                 message.setId(id);
                 messages.add(message);
